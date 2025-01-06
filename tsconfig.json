@@ -17,6 +17,25 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
-    "paths": {}
+    "paths": {
+      "@common/common": [
+        "libs/common/src"
+      ],
+      "@common/common/*": [
+        "libs/common/src/*"
+      ],
+      "@repository/repository": [
+        "libs/repository/src"
+      ],
+      "@repository/repository/*": [
+        "libs/repository/src/*"
+      ],
+      "@utils/utils": [
+        "libs/utils/src"
+      ],
+      "@utils/utils/*": [
+        "libs/utils/src/*"
+      ]
+    }
   }
 }
