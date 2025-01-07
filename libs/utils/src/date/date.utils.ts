@@ -15,6 +15,8 @@ export class DateUtils {
   constructor() {
     try {
       DateUtils._configuredTimezone = process.env.APP_TIMEZONE ?? 'UTC';
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       DateUtils._configuredTimezone = 'UTC';
     }
