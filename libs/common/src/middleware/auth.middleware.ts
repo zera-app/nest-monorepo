@@ -23,6 +23,13 @@ export class AuthMiddleware implements NestMiddleware {
         return errorResponse(401, 'Unauthorized');
       }
 
+      if (
+        accessToken.expiresAt < new Date() &&
+        accessToken.expiresAt !== null
+      ) {
+        return errorResponse(401, 'Unauthorized');
+      }
+
       const userInformation = await UserModel().detailProfile(
         accessToken.userId,
       );
@@ -44,7 +51,10 @@ export class AuthMiddleware implements NestMiddleware {
       }
 
       req.user = userInformation;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
+      console.log(error);
+
       return errorResponse(500, 'Internal Server Error');
     }
 

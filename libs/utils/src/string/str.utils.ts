@@ -1,4 +1,12 @@
 export class StrUtils {
+  static random(length: number = 16): string {
+    const characters =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    return Array.from({ length }, () =>
+      characters.charAt(Math.floor(Math.random() * characters.length)),
+    ).join('');
+  }
+
   static after(subject: string, search: string): string {
     return subject.includes(search) ? subject.split(search, 2)[1] : subject;
   }

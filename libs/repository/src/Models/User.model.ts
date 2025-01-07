@@ -85,6 +85,7 @@ export function UserModel() {
       };
     },
 
+    // don't change this for authentication flow
     async findUserByEmail(email: string) {
       return await prisma.user.findUnique({
         where: {
