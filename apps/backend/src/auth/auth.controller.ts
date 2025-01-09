@@ -26,22 +26,16 @@ export class AuthController {
         return errorResponse(422, 'Invalid email or password');
       }
 
-      console.log(user);
-
       const isMatch = HashUtils.compareHash(password, user.password);
       if (!isMatch) {
         return errorResponse(422, 'Invalid email or password');
       }
-
-      console.log(isMatch);
 
       const accessToken = await AccessTokenModel().createToken(
         user.id,
         remember_me,
       );
       const userInformation = await UserModel().detailProfile(user.id);
-
-      console.log(accessToken);
 
       return await res.status(200).json(
         successResponse(200, 'Successfully logged in', {
