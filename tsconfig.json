@@ -17,25 +17,14 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
+    "typeRoots": ["node_modules/@types", "libs/common/src/types"],
     "paths": {
-      "@common/common": [
-        "libs/common/src"
-      ],
-      "@common/common/*": [
-        "libs/common/src/*"
-      ],
-      "@repository/repository": [
-        "libs/repository/src"
-      ],
-      "@repository/repository/*": [
-        "libs/repository/src/*"
-      ],
-      "@utils/utils": [
-        "libs/utils/src"
-      ],
-      "@utils/utils/*": [
-        "libs/utils/src/*"
-      ]
+      "@common/common": ["libs/common/src"],
+      "@common/common/*": ["libs/common/src/*"],
+      "@repository/repository": ["libs/repository/src"],
+      "@repository/repository/*": ["libs/repository/src/*"],
+      "@utils/utils": ["libs/utils/src"],
+      "@utils/utils/*": ["libs/utils/src/*"]
     }
   }
 }
