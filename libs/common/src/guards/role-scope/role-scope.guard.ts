@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { prisma } from '@repository/repository';
+import { prisma, UserModel } from '@repository/repository';
 
 @Injectable()
 export class RoleScopeGuard implements CanActivate {
@@ -29,17 +29,6 @@ export class RoleScopeGuard implements CanActivate {
 
     const accessToken = await prisma.accessToken.findUnique({
       where: { token },
-      include: {
-        user: {
-          include: {
-            roles: {
-              include: {
-                role: true,
-              },
-            },
-          },
-        },
-      },
     });
 
     if (
@@ -56,7 +45,8 @@ export class RoleScopeGuard implements CanActivate {
     });
 
     // Check if user has any role with the required scope or null scope (all access)
-    const hasScope = accessToken.user.roles.some(
+    const userInformation = await UserModel().detailProfile(accessToken.userId);
+    const hasScope = userInformation.roles.some(
       (roleUser) =>
         roleUser.role.scope === requiredScope || roleUser.role.scope === null,
     );
@@ -65,7 +55,7 @@ export class RoleScopeGuard implements CanActivate {
       throw new UnauthorizedException('Insufficient scope');
     }
 
-    request.user = accessToken.user;
+    request.user = userInformation;
     return true;
   }
 }

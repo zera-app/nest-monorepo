@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { prisma } from '@repository/repository';
+import { prisma, UserModel } from '@repository/repository';
 
 @Injectable()
 export class RoleGuard implements CanActivate {
@@ -29,28 +29,18 @@ export class RoleGuard implements CanActivate {
 
     const accessToken = await prisma.accessToken.findUnique({
       where: { token },
-      include: {
-        user: {
-          include: {
-            roles: {
-              include: {
-                role: true,
-              },
-            },
-          },
-        },
-      },
     });
 
     if (!accessToken || accessToken.expiresAt < new Date()) {
       throw new UnauthorizedException('Invalid or expired token');
     }
 
-    const userRoles = accessToken.user.roles.map(
+    const userInformation = await UserModel().detailProfile(accessToken.userId);
+    const userRoles = userInformation.roles.map(
       (roleUser) => roleUser.role.name,
     );
-    const hasRole = roles.some((role) => userRoles.includes(role));
 
+    const hasRole = roles.some((role) => userRoles.includes(role));
     if (!hasRole) {
       throw new UnauthorizedException('Insufficient permissions');
     }

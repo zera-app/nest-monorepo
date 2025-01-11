@@ -95,7 +95,7 @@ export function UserModel() {
     },
 
     async detailProfile(userId: string): Promise<UserInformation> {
-      return await prisma.user.findUnique({
+      const user = await prisma.user.findUnique({
         where: {
           id: userId,
         },
@@ -109,22 +109,53 @@ export function UserModel() {
             select: {
               role: {
                 select: {
+                  id: true,
                   name: true,
-                  permissions: {
-                    select: {
-                      permission: {
-                        select: {
-                          name: true,
-                        },
-                      },
-                    },
-                  },
+                  scope: true,
                 },
               },
             },
           },
         },
       });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const rolePermission = await prisma.rolePermission.findMany({
+        where: {
+          roleId: {
+            in: user.roles.map((role) => role.role.id),
+          },
+        },
+      });
+
+      const permission = await prisma.permission.findMany({
+        where: {
+          id: {
+            in: rolePermission.map((item) => item.permissionId),
+          },
+        },
+      });
+
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        roles: user.roles.map((role) => ({
+          role: {
+            name: role.role.name,
+            scope: role.role.scope,
+          },
+        })),
+
+        permissions: permission
+          .filter((item) =>
+            rolePermission.some((rp) => rp.permissionId === item.id),
+          )
+          .map((item) => item.name),
+      };
     },
 
     // ROLE BASED ACCESS CONTROL (RBAC) ========================

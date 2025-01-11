@@ -5,9 +5,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { prisma } from '@repository/repository';
+import { prisma, UserModel } from '@repository/repository';
 import { Request } from 'express';
-import '../../types/express';
 
 @Injectable()
 export class UnifiedGuard implements CanActivate {
@@ -29,7 +28,8 @@ export class UnifiedGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest<Request>();
+    // const request = context.switchToHttp().getRequest<Request>();
+    const request = context.switchToHttp().getRequest();
     const token = this.extractTokenFromHeader(request);
     if (!token) {
       throw new UnauthorizedException('No token provided');
@@ -37,25 +37,6 @@ export class UnifiedGuard implements CanActivate {
 
     const accessToken = await prisma.accessToken.findUnique({
       where: { token },
-      include: {
-        user: {
-          include: {
-            roles: {
-              include: {
-                role: {
-                  include: {
-                    permissions: {
-                      include: {
-                        permission: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
     });
 
     if (
@@ -65,15 +46,16 @@ export class UnifiedGuard implements CanActivate {
       throw new UnauthorizedException('Invalid or expired token');
     }
 
-    // Update lastUsedAt
     await prisma.accessToken.update({
       where: { id: accessToken.id },
       data: { lastUsedAt: new Date() },
     });
 
+    const userInformation = await UserModel().detailProfile(accessToken.userId);
+
     // Check roles if required
     if (roles) {
-      const userRoles = accessToken.user.roles.map(
+      const userRoles = userInformation.roles.map(
         (roleUser) => roleUser.role.name,
       );
       const hasRole = roles.some((role) => userRoles.includes(role));
@@ -84,7 +66,7 @@ export class UnifiedGuard implements CanActivate {
 
     // Check scope if required
     if (requiredScope) {
-      const hasScope = accessToken.user.roles.some(
+      const hasScope = userInformation.roles.some(
         (roleUser) =>
           roleUser.role.scope === requiredScope || roleUser.role.scope === null,
       );
@@ -96,10 +78,9 @@ export class UnifiedGuard implements CanActivate {
     // Check permissions if required
     if (requiredPermissions) {
       const userPermissions = new Set<string>();
-      accessToken.user.roles.forEach((roleUser) => {
-        roleUser.role.permissions.forEach((rolePermission) => {
-          userPermissions.add(rolePermission.permission.name);
-        });
+
+      userInformation.permissions.forEach((permission) => {
+        userPermissions.add(permission);
       });
 
       const hasPermissions = requiredPermissions.every((permission) =>
@@ -111,7 +92,7 @@ export class UnifiedGuard implements CanActivate {
     }
 
     // Attach user to request
-    request.user = accessToken.user;
+    request.user = userInformation;
     return true;
   }
 

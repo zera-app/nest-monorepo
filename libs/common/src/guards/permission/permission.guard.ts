@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { prisma } from '@repository/repository';
+import { prisma, UserModel } from '@repository/repository';
 import { Request } from 'express';
 
 @Injectable()
@@ -29,25 +29,6 @@ export class PermissionGuard implements CanActivate {
 
     const accessToken = await prisma.accessToken.findUnique({
       where: { token },
-      include: {
-        user: {
-          include: {
-            roles: {
-              include: {
-                role: {
-                  include: {
-                    permissions: {
-                      include: {
-                        permission: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
     });
 
     if (
@@ -62,16 +43,23 @@ export class PermissionGuard implements CanActivate {
       data: { lastUsedAt: new Date() },
     });
 
+    const userInformation = await UserModel().detailProfile(accessToken.userId);
     const userPermissions = new Set<string>();
-    accessToken.user.roles.forEach((roleUser) => {
-      roleUser.role.permissions.forEach((rolePermission) => {
-        userPermissions.add(rolePermission.permission.name);
-      });
+
+    userInformation.permissions.forEach((permission) => {
+      userPermissions.add(permission);
     });
 
-    return requiredPermissions.every((permission) =>
+    const isHasValidPermission = requiredPermissions.every((permission) =>
       userPermissions.has(permission),
     );
+
+    if (!isHasValidPermission) {
+      throw new UnauthorizedException('Insufficient permissions');
+    }
+
+    request.user = userInformation;
+    return true;
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {
