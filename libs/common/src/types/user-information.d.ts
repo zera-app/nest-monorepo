@@ -5,11 +5,8 @@ export type UserInformation = {
   roles?: {
     role: {
       name: string;
-      permissions: {
-        permission: {
-          name: string;
-        };
-      }[];
+      scope: string;
     };
   }[];
+  permissions?: string[];
 };
