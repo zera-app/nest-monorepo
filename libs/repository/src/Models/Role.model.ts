@@ -1,6 +1,8 @@
 import { StrUtils } from '@utils/utils/string/str.utils';
 import { prisma } from '../index';
 import { ApplicationScope } from '@common/common/types/role-scope';
+import { DatatableType } from '@common/common/types/datatable';
+import { BadRequestException } from '@nestjs/common';
 
 type RoleType = {
   name: string;
@@ -11,6 +13,87 @@ type RoleType = {
 export function roleModel() {
   return Object.assign(prisma, {
     user: prisma.user,
+
+    async findAll(queryParam: DatatableType) {
+      const { page, limit, search, sort, sortDirection } = queryParam;
+      const finalLimit = Number(limit);
+      const finalPage = Number(page);
+
+      const allowedSort = ['name', 'scope', 'createdAt', 'updatedAt'];
+      const sortDirectionAllowed = ['asc', 'desc'];
+      const allowedFilter = ['name', 'createdAt', 'updatedAt'];
+
+      if (!allowedSort.includes(sort)) {
+        throw new BadRequestException('Invalid sort field');
+      }
+
+      if (!sortDirectionAllowed.includes(sortDirection)) {
+        throw new BadRequestException('Invalid sort direction');
+      }
+
+      let where = {};
+      if (search) {
+        where = {
+          OR: [
+            {
+              name: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
+          ],
+        };
+      }
+
+      let filter = {};
+      if (queryParam.filter) {
+        if (queryParam.filter['name']) {
+          filter = {
+            roles: {
+              some: {
+                role: {
+                  name: {
+                    equals: queryParam.filter['name'],
+                  },
+                },
+              },
+            },
+          };
+        }
+
+        where = {
+          ...where,
+          ...filter,
+        };
+      }
+
+      const users = await prisma.user.findMany({
+        where,
+        take: finalLimit,
+        skip: (finalPage - 1) * finalLimit,
+        orderBy: {
+          [sort]: sortDirection,
+        },
+      });
+
+      const total = await prisma.user.count({
+        where,
+      });
+
+      return {
+        data: users,
+        total,
+      };
+    },
+
+    async get(): Promise<{ id: string; name: string }[]> {
+      return await prisma.user.findMany({
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+    },
 
     async createRole(data: RoleType) {
       const role = await prisma.role.create({
@@ -27,10 +110,18 @@ export function roleModel() {
       return role;
     },
 
-    async findRoleByName(name: string) {
-      return await prisma.role.findFirst({
+    async findRoleByName(
+      name: string[],
+    ): Promise<{ id: string; name: string }[]> {
+      return await prisma.role.findMany({
         where: {
-          name,
+          name: {
+            in: name,
+          },
+        },
+        select: {
+          id: true,
+          name: true,
         },
       });
     },

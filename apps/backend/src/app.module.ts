@@ -7,9 +7,19 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { TestAuthModule } from './test-auth/test-auth.module';
 import { TestRoleModule } from './test-role/test-role.module';
 import { TestPermissionModule } from './test-permission/test-permission.module';
+import { UserModule } from './user/user.module';
 
 @Module({
-  imports: [AuthModule, CommonModule, RepositoryModule, DashboardModule, TestAuthModule, TestRoleModule, TestPermissionModule],
+  imports: [
+    AuthModule,
+    CommonModule,
+    RepositoryModule,
+    DashboardModule,
+    TestAuthModule,
+    TestRoleModule,
+    TestPermissionModule,
+    UserModule,
+  ],
   controllers: [AppController],
   providers: [],
 })

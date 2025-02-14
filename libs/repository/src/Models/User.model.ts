@@ -1,10 +1,12 @@
 import { StrUtils } from '@utils/utils/string/str.utils';
-import { prisma } from '../index';
+import { PermissionModel, prisma, roleModel } from '../index';
 import { DatatableType } from '@common/common/types/datatable';
 import { PaginationResponse } from '@common/common/types/pagination';
 import { UserInformation } from '@common/common/types/user-information';
+import { HashUtils } from '@utils/utils';
+import { BadRequestException, Get } from '@nestjs/common';
 
-type UserType = {
+export type UserType = {
   id: string;
   name: string;
   email: string;
@@ -26,21 +28,88 @@ export function UserModel() {
       withRole: boolean = false,
     ): Promise<PaginationResponse<UserType>> {
       const { page, limit, search, sort, sortDirection } = queryParam;
+      const finalLimit = Number(limit);
+      const finalPage = Number(page);
 
-      const where = {
-        OR: [
-          {
-            name: {
-              contains: search,
+      const allowedSort = ['name', 'email', 'createdAt', 'updatedAt'];
+      const sortDirectionAllowed = ['asc', 'desc'];
+      const allowedFilter = ['role', 'createdAt', 'updatedAt'];
+
+      if (!allowedSort.includes(sort)) {
+        throw new BadRequestException('Invalid sort field');
+      }
+
+      if (!sortDirectionAllowed.includes(sortDirection)) {
+        throw new BadRequestException('Invalid sort direction');
+      }
+
+      if (queryParam.filter) {
+        for (const key in queryParam.filter) {
+          if (!allowedFilter.includes(key)) {
+            throw new BadRequestException('Invalid filter field');
+          }
+        }
+      }
+
+      let where = {};
+      if (search) {
+        where = {
+          OR: [
+            {
+              name: {
+                contains: search,
+                mode: 'insensitive',
+              },
             },
-          },
-          {
-            email: {
-              contains: search,
+            {
+              email: {
+                contains: search,
+                mode: 'insensitive',
+              },
             },
-          },
-        ],
-      };
+          ],
+        };
+      }
+
+      let filter = {};
+      if (queryParam.filter) {
+        if (queryParam.filter['role']) {
+          filter = {
+            roles: {
+              some: {
+                role: {
+                  name: {
+                    contains: queryParam.filter['role'],
+                    mode: 'insensitive',
+                  },
+                },
+              },
+            },
+          };
+        }
+
+        if (queryParam.filter['createdAt']) {
+          filter = {
+            ...filter,
+            createdAt: {
+              gte: new Date(queryParam.filter['createdAt']),
+            },
+          };
+        }
+
+        if (queryParam.filter['updatedAt']) {
+          filter = {
+            ...filter,
+            updatedAt: {
+              gte: new Date(queryParam.filter['updatedAt']),
+            },
+          };
+        }
+
+        where = {
+          AND: [where, filter],
+        };
+      }
 
       const select = withRole
         ? {
@@ -69,8 +138,8 @@ export function UserModel() {
 
       const data = await prisma.user.findMany({
         where,
-        take: limit,
-        skip: (page - 1) * limit,
+        take: finalLimit,
+        skip: (finalPage - 1) * finalLimit,
         orderBy: {
           [sort]: sortDirection,
         },
@@ -79,10 +148,35 @@ export function UserModel() {
 
       return {
         data: data,
-        page: page - 1,
-        limit: limit,
+        page: finalPage - 1,
+        limit: finalLimit,
         totalCount: await prisma.user.count({ where }),
       };
+    },
+
+    async create(data: {
+      name: string;
+      email: string;
+      password: string;
+      roles?: string[];
+    }): Promise<UserInformation> {
+      const newData = await prisma.user.create({
+        data: {
+          name: data.name,
+          email: data.email,
+          password: data.password,
+        },
+      });
+
+      if (data.roles) {
+        const roles = await roleModel().findRoleByName(data.roles);
+        await this.assignRolesToUser(
+          newData.id,
+          roles.map((role) => role.id),
+        );
+      }
+
+      return await this.detailProfile(newData.id);
     },
 
     // don't change this for authentication flow

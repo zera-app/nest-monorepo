@@ -10,10 +10,18 @@ export function PermissionModel() {
       });
     },
 
-    async findPermissionByName(name: string) {
-      return await prisma.permission.findFirst({
+    async findPermissionByName(
+      name: string[],
+    ): Promise<{ id: string; name: string }[]> {
+      return await prisma.permission.findMany({
         where: {
-          name,
+          name: {
+            in: name,
+          },
+        },
+        select: {
+          id: true,
+          name: true,
         },
       });
     },
