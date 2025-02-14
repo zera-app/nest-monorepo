@@ -1,12 +1,20 @@
+import { UserInformation } from '@common/common/types/user-information';
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { prisma, UserModel } from '@repository/repository';
 import { Request } from 'express';
+
+declare module 'express' {
+  interface Request {
+    user?: UserInformation;
+  }
+}
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
@@ -46,6 +54,8 @@ export class PermissionGuard implements CanActivate {
     const userInformation = await UserModel().detailProfile(accessToken.userId);
     const userPermissions = new Set<string>();
 
+    const isSuperuser = userInformation.roles.some(({role}) => role.name === 'superuser');
+
     userInformation.permissions.forEach((permission) => {
       userPermissions.add(permission);
     });
@@ -54,8 +64,8 @@ export class PermissionGuard implements CanActivate {
       userPermissions.has(permission),
     );
 
-    if (!isHasValidPermission) {
-      throw new UnauthorizedException('Insufficient permissions');
+    if (!isHasValidPermission && !isSuperuser) {
+      throw new ForbiddenException('Insufficient permissions');
     }
 
     request.user = userInformation;

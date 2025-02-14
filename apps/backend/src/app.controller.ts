@@ -7,6 +7,7 @@ export class AppController {
   getHello(@Res() res: Response): Response {
     return res.json({
       message: 'Welcome to the backend service',
+      app_env: process.env.APP_ENV,
     });
   }
 }

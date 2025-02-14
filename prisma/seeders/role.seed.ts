@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 
 export async function seedRole(prisma: PrismaClient) {
-  const roles = ['admin', 'user'];
+  const roles = ['superuser', 'admin', 'user'];
   await prisma.role.createMany({
     data: roles.map((name) => ({
       name,

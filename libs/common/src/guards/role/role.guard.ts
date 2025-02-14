@@ -40,8 +40,9 @@ export class RoleGuard implements CanActivate {
       (roleUser) => roleUser.role.name,
     );
 
+    const isSuperuser = userRoles.includes('superuser');
     const hasRole = roles.some((role) => userRoles.includes(role));
-    if (!hasRole) {
+    if (!hasRole && !isSuperuser) {
       throw new UnauthorizedException('Insufficient permissions');
     }
 
@@ -51,6 +52,7 @@ export class RoleGuard implements CanActivate {
       data: { lastUsedAt: new Date() },
     });
 
+    request.user = userInformation;
     return true;
   }
 }

@@ -1,8 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 import { HashUtils } from '@utils/utils/hash/hash.utils';
 
+const superuserEmail = 'superuser@mail.com';
+
 export async function userSeeder(prisma: PrismaClient) {
-  const emails = ['admin@mail.com', 'user@mail.com'];
+  const emails = ['admin@mail.com', 'user@mail.com', superuserEmail];
 
   const AdminRole = await prisma.role.findFirst({
     where: {
@@ -15,6 +17,12 @@ export async function userSeeder(prisma: PrismaClient) {
       name: 'user',
     },
   });
+
+  const SuperuserRole = await prisma.role.findFirst({
+    where: {
+      name: 'superuser',
+    },
+  })
 
   await prisma.user.createMany({
     data: emails.map((email) => ({
@@ -36,6 +44,15 @@ export async function userSeeder(prisma: PrismaClient) {
         userId: user.id,
       },
     });
+
+    if (email == superuserEmail) {
+      await prisma.roleUser.create({
+        data: {
+          roleId: SuperuserRole.id,
+          userId: user.id,
+        },
+      });
+    }
   }
 
   console.log('User seed completed');
