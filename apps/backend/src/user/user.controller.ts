@@ -14,6 +14,8 @@ import { Response } from 'express';
 import { DatatableType, SortDirection } from '@common/common/types/datatable';
 import { CreateUserDto } from './dto/create.dto';
 import { successResponse } from '@common/common/reponses/success.response';
+import { paginationLength } from '@utils/utils/default/pagination-length';
+import { defaultSort } from '@utils/utils/default/sort';
 
 @Controller('user')
 @UseGuards(RoleGuard)
@@ -29,17 +31,17 @@ export class UserController {
     @Query('search') search: string,
     @Query('sort') sort: string,
     @Query('sortDirection') sortDirection: string,
-    @Query('filter') filter: object,
+    @Query('filter') filter: Record<string, string | boolean | Date> | null,
   ) {
     const datatableRequest: DatatableType = {
       page: page || 1,
-      limit: limit || 10,
+      limit: limit || paginationLength,
       search: search || null,
-      sort: sort || 'createdAt',
+      sort: sort || defaultSort,
       sortDirection: (sortDirection === 'asc'
         ? 'asc'
         : 'desc') as SortDirection,
-      filter: null,
+      filter: filter || null,
     };
 
     const users = await this.userService.getUsers(datatableRequest);

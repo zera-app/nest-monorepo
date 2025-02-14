@@ -8,7 +8,7 @@ export type DatatableType = {
   sortDirection: SortDirection;
 
   // e.g ?filter[name]=John&filter[age]=30
-  filter: Record<string, string>;
+  filter: Record<string, boolean | string | Date> | null;
 
   // NOTE: This is just an example, you can add more fields here
   // fields=name,age
