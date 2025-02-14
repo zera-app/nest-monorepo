@@ -8,7 +8,7 @@ datasource db {
 }
 
 model User {
-  id                String             @id @default(uuid())
+  id                String             @id @default(uuid()) @db.Uuid
   email             String             @unique @db.VarChar(255)
   password          String             @db.VarChar(255)
   name              String?            @db.VarChar(100)
@@ -23,7 +23,7 @@ model User {
 }
 
 model Role {
-  id          String           @id @default(uuid())
+  id          String           @id @default(uuid()) @db.Uuid
   name        String           @unique @db.VarChar(50)
   scope       String?          @db.VarChar(50) // backend app, admin app, frontend app, etc. if null all apps
   createdAt   DateTime         @default(now())
@@ -33,7 +33,7 @@ model Role {
 }
 
 model Permission {
-  id          String           @id @default(uuid())
+  id          String           @id @default(uuid()) @db.Uuid
   name        String           @unique @db.VarChar(50)
   module      String?          @db.VarChar(15)
   createdAt   DateTime         @default(now())
@@ -42,8 +42,8 @@ model Permission {
 }
 
 model RoleUser {
-  userId    String
-  roleId    String
+  userId    String  @db.Uuid
+  roleId    String  @db.Uuid
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
@@ -53,8 +53,8 @@ model RoleUser {
 }
 
 model RolePermission {
-  roleId       String
-  permissionId String
+  roleId       String   @db.Uuid
+  permissionId String  @db.Uuid
   role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
@@ -64,8 +64,8 @@ model RolePermission {
 }
 
 model EmailVerification {
-  id        String   @id @default(uuid())
-  userId    String   @unique
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
   token     String   @unique
   createdAt DateTime @default(now())
   expiresAt DateTime
@@ -73,9 +73,9 @@ model EmailVerification {
 }
 
 model AccessToken {
-  id          String    @id @default(uuid())
+  id          String    @id @default(uuid()) @db.Uuid
   token       String    @unique @db.VarChar(255)
-  userId      String
+  userId      String   @db.Uuid
   name        String?   @db.VarChar(100)
   lastUsedAt  DateTime?
   expiresAt   DateTime?
