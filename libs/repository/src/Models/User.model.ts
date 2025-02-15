@@ -1,10 +1,11 @@
 import { StrUtils } from '@utils/utils/string/str.utils';
-import { PermissionModel, prisma, roleModel } from '../index';
+import { prisma, roleModel } from '../index';
 import { DatatableType } from '@common/common/types/datatable';
 import { PaginationResponse } from '@common/common/types/pagination';
 import { UserInformation } from '@common/common/types/user-information';
-import { HashUtils } from '@utils/utils';
-import { BadRequestException, Get } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
+import { PrismaClient, Prisma } from '@prisma/client';
+import { DateUtils } from '@utils/utils';
 
 export type UserType = {
   id: string;
@@ -19,9 +20,11 @@ export type UserType = {
   updatedAt: Date;
 };
 
-export function UserModel() {
-  return Object.assign(prisma, {
-    user: prisma.user,
+export function UserModel(tx?: Prisma.TransactionClient) {
+  const db = tx || prisma;
+
+  return {
+    user: db.user,
 
     async findAll(
       queryParam: DatatableType,
@@ -88,21 +91,41 @@ export function UserModel() {
           };
         }
 
-        if (queryParam.filter['createdAt']) {
+        if (
+          queryParam.filter['createdAt'] &&
+          typeof queryParam.filter['createdAt'] === 'string'
+        ) {
+          const [startDate, endDate] =
+            queryParam.filter['createdAt'].split(',');
           filter = {
             ...filter,
-            createdAt: {
-              gte: new Date(queryParam.filter['createdAt']),
-            },
+            createdAt: endDate
+              ? {
+                  gte: DateUtils.parse(startDate),
+                  lte: DateUtils.parse(endDate),
+                }
+              : {
+                  gte: DateUtils.parse(startDate),
+                },
           };
         }
 
-        if (queryParam.filter['updatedAt']) {
+        if (
+          queryParam.filter['updatedAt'] &&
+          typeof queryParam.filter['updatedAt'] === 'string'
+        ) {
+          const [startDate, endDate] =
+            queryParam.filter['updatedAt'].split(',');
           filter = {
             ...filter,
-            updatedAt: {
-              gte: new Date(queryParam.filter['updatedAt']),
-            },
+            updatedAt: endDate
+              ? {
+                  gte: DateUtils.parse(startDate),
+                  lte: DateUtils.parse(endDate),
+                }
+              : {
+                  gte: DateUtils.parse(startDate),
+                },
           };
         }
 
@@ -136,7 +159,7 @@ export function UserModel() {
             updatedAt: true,
           };
 
-      const data = await prisma.user.findMany({
+      const data = await db.user.findMany({
         where,
         take: finalLimit,
         skip: (finalPage - 1) * finalLimit,
@@ -150,7 +173,7 @@ export function UserModel() {
         data: data,
         page: finalPage - 1,
         limit: finalLimit,
-        totalCount: await prisma.user.count({ where }),
+        totalCount: await db.user.count({ where }),
       };
     },
 
@@ -160,7 +183,7 @@ export function UserModel() {
       password: string;
       roles?: string[];
     }): Promise<UserInformation> {
-      const newData = await prisma.user.create({
+      const newData = await db.user.create({
         data: {
           name: data.name,
           email: data.email,
@@ -169,7 +192,7 @@ export function UserModel() {
       });
 
       if (data.roles) {
-        const roles = await roleModel().findRoleByName(data.roles);
+        const roles = await roleModel(tx).findRoleByName(data.roles);
         await this.assignRolesToUser(
           newData.id,
           roles.map((role) => role.id),
@@ -180,16 +203,47 @@ export function UserModel() {
     },
 
     // don't change this for authentication flow
-    async findUserByEmail(email: string) {
-      return await prisma.user.findUnique({
+    async findUserByEmail(email: string): Promise<{
+      id: string;
+      name: string | null;
+      email: string;
+      password: string;
+      emailVerifiedAt: Date | null;
+      updatedAt: Date;
+      createdAt: Date;
+    } | null> {
+      return await db.user.findUnique({
         where: {
           email,
         },
       });
     },
 
+    async findOneByEmail(email: string): Promise<{
+      id: string;
+      name: string | null;
+      email: string;
+      password: string;
+      updatedAt: Date | null;
+      createdAt: Date | null;
+    } | null> {
+      return await db.user.findFirst({
+        where: {
+          email,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          password: true,
+          updatedAt: true,
+          createdAt: true,
+        },
+      });
+    },
+
     async detailProfile(userId: string): Promise<UserInformation> {
-      const user = await prisma.user.findUnique({
+      const user = await db.user.findUnique({
         where: {
           id: userId,
         },
@@ -217,7 +271,7 @@ export function UserModel() {
         throw new Error('User not found');
       }
 
-      const rolePermission = await prisma.rolePermission.findMany({
+      const rolePermission = await db.rolePermission.findMany({
         where: {
           roleId: {
             in: user.roles.map((role) => role.role.id),
@@ -225,7 +279,7 @@ export function UserModel() {
         },
       });
 
-      const permission = await prisma.permission.findMany({
+      const permission = await db.permission.findMany({
         where: {
           id: {
             in: rolePermission.map((item) => item.permissionId),
@@ -252,12 +306,57 @@ export function UserModel() {
       };
     },
 
+    async update(
+      userId: string,
+      data: {
+        name: string;
+        email: string;
+        password?: string;
+        roles?: string[];
+      },
+    ) {
+      const newData = await db.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          name: data.name,
+          email: data.email,
+          ...(data.password && { password: data.password }),
+        },
+      });
+
+      if (data.roles) {
+        const roles = await roleModel(tx).findRoleByName(data.roles);
+        const currentRoles = await this.findUserRoles(userId);
+        await this.revokeRolesFromUser(
+          userId,
+          currentRoles.map((role) => role.roleId),
+        );
+
+        await this.assignRolesToUser(
+          userId,
+          roles.map((role) => role.id),
+        );
+      }
+
+      return await this.detailProfile(newData.id);
+    },
+
+    async delete(userId: string): Promise<void> {
+      await db.user.delete({
+        where: {
+          id: userId,
+        },
+      });
+    },
+
     // ROLE BASED ACCESS CONTROL (RBAC) ========================
 
     async assignRoleToUser(userId: string, roleId: string) {
       let finalRoleId = roleId;
       if (!StrUtils.isUuid(roleId)) {
-        const role = await prisma.role.findFirst({
+        const role = await db.role.findFirst({
           where: {
             name: roleId,
           },
@@ -269,7 +368,7 @@ export function UserModel() {
         finalRoleId = role.id;
       }
 
-      return await prisma.roleUser.create({
+      return await db.roleUser.create({
         data: {
           userId: userId,
           roleId: finalRoleId,
@@ -280,7 +379,7 @@ export function UserModel() {
     async assignRolesToUser(userId: string, roleIds: string[]) {
       let finalRoleIds = roleIds;
       if (roleIds.some((roleId) => !StrUtils.isUuid(roleId))) {
-        const roles = await prisma.role.findMany({
+        const roles = await db.role.findMany({
           where: {
             name: {
               in: roleIds,
@@ -295,7 +394,7 @@ export function UserModel() {
         finalRoleIds = roles.map((role) => role.id);
       }
 
-      return await prisma.roleUser.createMany({
+      return await db.roleUser.createMany({
         data: finalRoleIds.map((item) => ({
           userId: userId,
           roleId: item,
@@ -304,7 +403,7 @@ export function UserModel() {
     },
 
     async findUserRoles(userId: string) {
-      return await prisma.roleUser.findMany({
+      return await db.roleUser.findMany({
         where: {
           userId,
         },
@@ -314,7 +413,7 @@ export function UserModel() {
     async revokeRoleFromUser(userId: string, roleId: string) {
       let finalRoleId = roleId;
       if (!StrUtils.isUuid(roleId)) {
-        const role = await prisma.role.findFirst({
+        const role = await db.role.findFirst({
           where: {
             name: roleId,
           },
@@ -326,7 +425,7 @@ export function UserModel() {
         finalRoleId = role.id;
       }
 
-      return await prisma.roleUser.deleteMany({
+      return await db.roleUser.deleteMany({
         where: {
           userId: userId,
           roleId: finalRoleId,
@@ -336,7 +435,7 @@ export function UserModel() {
 
     async revokeRolesFromUser(userId: string, roleIds: string[]) {
       if (roleIds.some((roleId) => !StrUtils.isUuid(roleId))) {
-        const roles = await prisma.role.findMany({
+        const roles = await db.role.findMany({
           where: {
             name: {
               in: roleIds,
@@ -351,7 +450,7 @@ export function UserModel() {
         roleIds = roles.map((role) => role.id);
       }
 
-      return await prisma.roleUser.deleteMany({
+      return await db.roleUser.deleteMany({
         where: {
           userId,
           roleId: {
@@ -360,5 +459,5 @@ export function UserModel() {
         },
       });
     },
-  });
+  };
 }

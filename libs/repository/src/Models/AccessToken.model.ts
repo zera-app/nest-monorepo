@@ -1,5 +1,7 @@
 import { StrUtils } from '@utils/utils/string/str.utils';
 import { prisma } from '../index';
+import { DateUtils } from '@utils/utils';
+import { tokenLifeTime } from '@utils/utils/default/token-lifetime';
 
 type DetailToken = {
   userId: string;
@@ -15,8 +17,8 @@ export function AccessTokenModel() {
         data: {
           userId,
           token: StrUtils.random(200),
-          expiresAt: rememberMe ? null : new Date(Date.now() + 1000 * 60 * 60),
-          lastUsedAt: new Date(),
+          expiresAt: rememberMe ? null : tokenLifeTime,
+          lastUsedAt: DateUtils.now().toDate(),
         },
       });
 
@@ -41,7 +43,7 @@ export function AccessTokenModel() {
           token,
         },
         data: {
-          lastUsedAt: new Date(),
+          lastUsedAt: DateUtils.now().toDate(),
         },
       });
     },

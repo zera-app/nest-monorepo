@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { prisma, UserModel } from '@repository/repository';
+import { DateUtils } from '@utils/utils';
+import { tokenLifeTime } from '@utils/utils/default/token-lifetime';
 
 @Injectable()
 export class RoleGuard implements CanActivate {
@@ -31,7 +33,14 @@ export class RoleGuard implements CanActivate {
       where: { token },
     });
 
-    if (!accessToken || accessToken.expiresAt < new Date()) {
+    if (
+      !accessToken ||
+      (accessToken.expiresAt !== null &&
+        DateUtils.isBefore(
+          DateUtils.parse(accessToken.expiresAt.toString()),
+          DateUtils.now(),
+        ))
+    ) {
       throw new UnauthorizedException('Invalid or expired token');
     }
 
@@ -46,10 +55,13 @@ export class RoleGuard implements CanActivate {
       throw new UnauthorizedException('Insufficient permissions');
     }
 
-    // Update last used timestamp
+    // Update last used timestamp with conditional expiration
     await prisma.accessToken.update({
       where: { id: accessToken.id },
-      data: { lastUsedAt: new Date() },
+      data: {
+        lastUsedAt: DateUtils.now().toDate(),
+        ...(accessToken.expiresAt && { expiresAt: tokenLifeTime }),
+      },
     });
 
     request.user = userInformation;

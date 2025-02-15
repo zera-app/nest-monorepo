@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { UserModel } from '@repository/repository';
+import { DateUtils } from '@utils/utils';
+import { tokenLifeTime } from '@utils/utils/default/token-lifetime';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -32,13 +34,22 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Invalid token');
     }
 
-    if (accessToken.expiresAt && accessToken.expiresAt < new Date()) {
+    if (
+      accessToken.expiresAt !== null &&
+      DateUtils.isBefore(
+        DateUtils.parse(accessToken.expiresAt.toString()),
+        DateUtils.now(),
+      )
+    ) {
       throw new UnauthorizedException('Token expired');
     }
 
     await this.prisma.accessToken.update({
       where: { id: accessToken.id },
-      data: { lastUsedAt: new Date() },
+      data: {
+        lastUsedAt: DateUtils.now().toDate(),
+        ...(accessToken.expiresAt && { expiresAt: tokenLifeTime }),
+      },
     });
 
     const UserInformation = await UserModel().detailProfile(accessToken.userId);

@@ -3,6 +3,7 @@ import { prisma } from '../index';
 import { ApplicationScope } from '@common/common/types/role-scope';
 import { DatatableType } from '@common/common/types/datatable';
 import { BadRequestException } from '@nestjs/common';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 type RoleType = {
   name: string;
@@ -10,9 +11,11 @@ type RoleType = {
   permissionIds: string[];
 };
 
-export function roleModel() {
-  return Object.assign(prisma, {
-    user: prisma.user,
+export function roleModel(tx?: Prisma.TransactionClient) {
+  const db = tx || prisma;
+
+  return {
+    user: db.user,
 
     async findAll(queryParam: DatatableType) {
       const { page, limit, search, sort, sortDirection } = queryParam;
@@ -67,7 +70,7 @@ export function roleModel() {
         };
       }
 
-      const users = await prisma.user.findMany({
+      const users = await db.user.findMany({
         where,
         take: finalLimit,
         skip: (finalPage - 1) * finalLimit,
@@ -76,7 +79,7 @@ export function roleModel() {
         },
       });
 
-      const total = await prisma.user.count({
+      const total = await db.user.count({
         where,
       });
 
@@ -87,7 +90,7 @@ export function roleModel() {
     },
 
     async get(): Promise<{ id: string; name: string }[]> {
-      return await prisma.user.findMany({
+      return await db.user.findMany({
         select: {
           id: true,
           name: true,
@@ -96,7 +99,7 @@ export function roleModel() {
     },
 
     async createRole(data: RoleType) {
-      const role = await prisma.role.create({
+      const role = await db.role.create({
         data: {
           name: data.name,
           scope: data.scope,
@@ -113,7 +116,7 @@ export function roleModel() {
     async findRoleByName(
       name: string[],
     ): Promise<{ id: string; name: string }[]> {
-      return await prisma.role.findMany({
+      return await db.role.findMany({
         where: {
           name: {
             in: name,
@@ -127,7 +130,7 @@ export function roleModel() {
     },
 
     async findRoleById(id: string) {
-      return await prisma.role.findUnique({
+      return await db.role.findUnique({
         where: {
           id,
         },
@@ -135,7 +138,7 @@ export function roleModel() {
     },
 
     async updateRole(id: string, data: RoleType) {
-      const role = await prisma.role.update({
+      const role = await db.role.update({
         where: {
           id,
         },
@@ -157,7 +160,7 @@ export function roleModel() {
     async assignPermission(roleId: string, permissionId: string) {
       let finalPermissionId = permissionId;
       if (!StrUtils.isUuid(permissionId)) {
-        const permission = await prisma.permission.findFirst({
+        const permission = await db.permission.findFirst({
           where: {
             name: permissionId,
           },
@@ -168,7 +171,7 @@ export function roleModel() {
         finalPermissionId = permission.id;
       }
 
-      return prisma.rolePermission.create({
+      return db.rolePermission.create({
         data: {
           roleId,
           permissionId: finalPermissionId,
@@ -177,7 +180,7 @@ export function roleModel() {
     },
 
     async assignPermissionsToRole(roleId: string, permissionIds: string[]) {
-      await prisma.rolePermission.deleteMany({
+      await db.rolePermission.deleteMany({
         where: {
           roleId,
         },
@@ -187,7 +190,7 @@ export function roleModel() {
       if (
         permissionIds.some((permissionId) => !StrUtils.isUuid(permissionId))
       ) {
-        const permissions = await prisma.permission.findMany({
+        const permissions = await db.permission.findMany({
           where: {
             name: {
               in: permissionIds,
@@ -202,7 +205,7 @@ export function roleModel() {
         finalPermissionIds = permissions.map((permission) => permission.id);
       }
 
-      return await prisma.rolePermission.createMany({
+      return await db.rolePermission.createMany({
         data: finalPermissionIds.map((item) => ({
           roleId,
           permissionId: item,
@@ -211,7 +214,7 @@ export function roleModel() {
     },
 
     async findRolePermissions(roleId: string) {
-      return await prisma.rolePermission.findMany({
+      return await db.rolePermission.findMany({
         where: {
           roleId,
         },
@@ -221,7 +224,7 @@ export function roleModel() {
     async revokePermissionFromRole(roleId: string, permissionId: string) {
       let finalPermissionId = permissionId;
       if (!StrUtils.isUuid(permissionId)) {
-        const permission = await prisma.permission.findFirst({
+        const permission = await db.permission.findFirst({
           where: {
             name: permissionId,
           },
@@ -232,7 +235,7 @@ export function roleModel() {
         finalPermissionId = permission.id;
       }
 
-      return await prisma.rolePermission.deleteMany({
+      return await db.rolePermission.deleteMany({
         where: {
           roleId,
           permissionId: finalPermissionId,
@@ -244,7 +247,7 @@ export function roleModel() {
       if (
         permissionIds.some((permissionId) => !StrUtils.isUuid(permissionId))
       ) {
-        const permissions = await prisma.permission.findMany({
+        const permissions = await db.permission.findMany({
           where: {
             name: {
               in: permissionIds,
@@ -259,7 +262,7 @@ export function roleModel() {
         permissionIds = permissions.map((permission) => permission.id);
       }
 
-      return await prisma.rolePermission.deleteMany({
+      return await db.rolePermission.deleteMany({
         where: {
           roleId,
           permissionId: {
@@ -268,5 +271,5 @@ export function roleModel() {
         },
       });
     },
-  });
+  };
 }
