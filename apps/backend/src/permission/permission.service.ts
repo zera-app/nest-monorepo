@@ -13,35 +13,35 @@ import { UpdatePermissionDto } from './dto/update-permission.dto';
 export class PermissionService {
   constructor(private prisma: PrismaService) {}
 
-  async getPermissions(
+  async datatable(
     datatable: DatatableType,
   ): Promise<PaginationResponse<PermissionType>> {
     return await this.prisma.$transaction(async (tx) => {
-      return await PermissionModel(tx).findAllPermissions(datatable);
+      return await PermissionModel(tx).datatable(datatable);
     });
   }
 
-  async createPermission(data: CreatePermissionDto): Promise<void> {
+  async create(data: CreatePermissionDto): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
-      return await PermissionModel(tx).createPermission(data);
+      return await PermissionModel(tx).create(data);
     });
   }
 
   async findOne(id: string): Promise<PermissionType> {
     return await this.prisma.$transaction(async (tx) => {
-      return await PermissionModel(tx).findOnePermission(id);
+      return await PermissionModel(tx).findOne(id);
     });
   }
 
-  async updatePermission(id: string, data: UpdatePermissionDto): Promise<void> {
+  async update(id: string, data: UpdatePermissionDto): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
-      return await PermissionModel(tx).updatePermission(id, data);
+      await PermissionModel(tx).update(id, data);
     });
   }
 
-  async deletePermission(id: string): Promise<PermissionType> {
-    return await this.prisma.$transaction(async (tx) => {
-      return await PermissionModel(tx).deletePermission(id);
+  async delete(id: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await PermissionModel(tx).delete(id);
     });
   }
 }

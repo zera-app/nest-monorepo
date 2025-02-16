@@ -39,7 +39,7 @@ export function roleModel(tx?: Prisma.TransactionClient) {
   return {
     role: db.role,
 
-    async findAll(
+    async datatable(
       queryParam: DatatableType,
     ): Promise<PaginationResponse<RoleDatatable>> {
       const { page, limit, search, sort, sortDirection } = queryParam;
@@ -159,15 +159,6 @@ export function roleModel(tx?: Prisma.TransactionClient) {
         page: finalPage - 1,
         totalCount: total,
       };
-    },
-
-    async get(): Promise<{ id: string; name: string }[]> {
-      return await db.role.findMany({
-        select: {
-          id: true,
-          name: true,
-        },
-      });
     },
 
     async create(data: {

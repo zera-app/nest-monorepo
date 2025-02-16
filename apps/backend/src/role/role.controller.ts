@@ -29,7 +29,7 @@ export class RoleController {
 
   @Get()
   @Roles(['superuser'])
-  async getRoles(
+  async datatable(
     @Query('page') page: number,
     @Query('limit') limit: number,
     @Query('search') search: string,
@@ -50,7 +50,7 @@ export class RoleController {
     };
 
     try {
-      const data = await this.roleService.getRoles(datatableRequest);
+      const data = await this.roleService.datatable(datatableRequest);
       return res
         .status(200)
         .json(successResponse(200, 'Success get roles', data));
@@ -63,7 +63,7 @@ export class RoleController {
   @Roles(['superuser'])
   async createRole(@Body() data: CreateRoleDto, @Res() res: Response) {
     try {
-      await this.roleService.createRole(data);
+      await this.roleService.create(data);
       return res
         .status(201)
         .json(successResponse(201, 'Success create role', null));
@@ -93,7 +93,7 @@ export class RoleController {
     @Res() res: Response,
   ) {
     try {
-      await this.roleService.updateRole(id, data);
+      await this.roleService.update(id, data);
       return res
         .status(200)
         .json(successResponse(200, 'Success update role', null));
@@ -106,7 +106,7 @@ export class RoleController {
   @Roles(['superuser'])
   async deleteRole(@Param('id') id: string, @Res() res: Response) {
     try {
-      await this.roleService.deleteRole(id);
+      await this.roleService.delete(id);
       return res
         .status(200)
         .json(successResponse(200, 'Success delete role', null));

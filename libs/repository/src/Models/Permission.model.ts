@@ -18,7 +18,7 @@ export function PermissionModel(tx?: Prisma.TransactionClient) {
   return Object.assign(db, {
     permission: db.permission,
 
-    async findAllPermissions(
+    async datatable(
       datatable: DatatableType,
     ): Promise<PaginationResponse<PermissionType>> {
       const { page, limit, search, sortDirection } = datatable;
@@ -105,10 +105,7 @@ export function PermissionModel(tx?: Prisma.TransactionClient) {
       };
     },
 
-    async createPermission(data: {
-      name: string[];
-      module: string;
-    }): Promise<void> {
+    async create(data: { name: string[]; module: string }): Promise<void> {
       const permissions = data.name.map((name) => ({
         name,
         module: data.module,
@@ -136,6 +133,14 @@ export function PermissionModel(tx?: Prisma.TransactionClient) {
           id,
         },
         data,
+      });
+    },
+
+    async delete(id: string): Promise<void> {
+      await prisma.permission.delete({
+        where: {
+          id,
+        },
       });
     },
 

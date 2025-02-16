@@ -11,11 +11,11 @@ import { UpdateUserDto } from './dto/update.dto';
 export class UserService {
   constructor(private prisma: PrismaService) {}
 
-  async getUsers(
+  async datatable(
     datatableRequest: DatatableType,
   ): Promise<PaginationResponse<UserType>> {
     return await this.prisma.$transaction(async (tx) => {
-      return await UserModel(tx).findAll(datatableRequest);
+      return await UserModel(tx).datatable(datatableRequest);
     });
   }
 

@@ -49,10 +49,14 @@ export class UserController {
       filter: filter || null,
     };
 
-    const users = await this.userService.getUsers(datatableRequest);
-    return res
-      .status(200)
-      .json(successResponse(200, 'Success get user data', users));
+    try {
+      const users = await this.userService.datatable(datatableRequest);
+      return res
+        .status(200)
+        .json(successResponse(200, 'Success get user data', users));
+    } catch (error) {
+      return errorResponse(res, error);
+    }
   }
 
   @Post()

@@ -26,7 +26,7 @@ export function UserModel(tx?: Prisma.TransactionClient) {
   return {
     user: db.user,
 
-    async findAll(
+    async datatable(
       queryParam: DatatableType,
       withRole: boolean = false,
     ): Promise<PaginationResponse<UserType>> {

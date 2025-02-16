@@ -29,7 +29,7 @@ export class PermissionController {
 
   @Get()
   @Roles(['superuser'])
-  async getPermissions(
+  async datatable(
     @Query('page') page: number,
     @Query('limit') limit: number,
     @Query('search') search: string,
@@ -50,8 +50,7 @@ export class PermissionController {
     };
 
     try {
-      const data =
-        await this.permissionService.getPermissions(datatableRequest);
+      const data = await this.permissionService.datatable(datatableRequest);
       return res
         .status(200)
         .json(successResponse(200, 'Success get permissions', data));
@@ -67,7 +66,7 @@ export class PermissionController {
     @Res() res: Response,
   ) {
     try {
-      await this.permissionService.createPermission(data);
+      await this.permissionService.create(data);
       return res
         .status(201)
         .json(successResponse(201, 'Success create permission', null));
@@ -97,7 +96,7 @@ export class PermissionController {
     @Res() res: Response,
   ) {
     try {
-      await this.permissionService.updatePermission(id, data);
+      await this.permissionService.update(id, data);
       return res
         .status(200)
         .json(successResponse(200, 'Success update permission', null));
@@ -110,7 +109,7 @@ export class PermissionController {
   @Roles(['superuser'])
   async deletePermission(@Param('id') id: string, @Res() res: Response) {
     try {
-      await this.permissionService.deletePermission(id);
+      await this.permissionService.delete(id);
       return res
         .status(200)
         .json(successResponse(200, 'Success delete permission', null));

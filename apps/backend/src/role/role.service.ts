@@ -13,15 +13,15 @@ import { CreateRoleDto } from './dto/create-role.dto';
 export class RoleService {
   constructor(private prismaService: PrismaService) {}
 
-  async getRoles(
+  async datatable(
     datatable: DatatableType,
   ): Promise<PaginationResponse<RoleDatatable>> {
     return await this.prismaService.$transaction(async (tx) => {
-      return await roleModel(tx).findAll(datatable);
+      return await roleModel(tx).datatable(datatable);
     });
   }
 
-  async createRole(data: CreateRoleDto): Promise<void> {
+  async create(data: CreateRoleDto): Promise<void> {
     await this.prismaService.$transaction(async (tx) => {
       return await roleModel(tx).create(data);
     });
@@ -33,13 +33,13 @@ export class RoleService {
     });
   }
 
-  async updateRole(id: string, data: CreateRoleDto): Promise<void> {
+  async update(id: string, data: CreateRoleDto): Promise<void> {
     await this.prismaService.$transaction(async (tx) => {
       return await roleModel(tx).update(id, data);
     });
   }
 
-  async deleteRole(id: string): Promise<void> {
+  async delete(id: string): Promise<void> {
     await this.prismaService.$transaction(async (tx) => {
       return await roleModel(tx).delete(id);
     });
