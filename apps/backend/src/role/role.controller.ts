@@ -14,22 +14,22 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { PermissionService } from './permission.service';
+import { RoleService } from './role.service';
 import { successResponse } from '@common/common/reponses/success.response';
 import { errorResponse } from '@common/common/reponses/error.response';
-import { CreatePermissionDto } from './dto/create-permission.dto';
-import { UpdatePermissionDto } from './dto/update-permission.dto';
+import { CreateRoleDto } from './dto/create-role.dto';
+import { UpdateRoleDto } from './dto/update-role.dto';
 import { paginationLength } from '@utils/utils/default/pagination-length';
 import { defaultSort } from '@utils/utils/default/sort';
 
-@Controller('permission')
+@Controller('role')
 @UseGuards(RoleGuard)
-export class PermissionController {
-  constructor(private readonly permissionService: PermissionService) {}
+export class RoleController {
+  constructor(private readonly roleService: RoleService) {}
 
   @Get()
   @Roles(['superuser'])
-  async getPermissions(
+  async getRoles(
     @Query('page') page: number,
     @Query('limit') limit: number,
     @Query('search') search: string,
@@ -50,11 +50,10 @@ export class PermissionController {
     };
 
     try {
-      const data =
-        await this.permissionService.getPermissions(datatableRequest);
+      const data = await this.roleService.getRoles(datatableRequest);
       return res
         .status(200)
-        .json(successResponse(200, 'Success get permissions', data));
+        .json(successResponse(200, 'Success get roles', data));
     } catch (error) {
       return errorResponse(res, error);
     }
@@ -62,15 +61,12 @@ export class PermissionController {
 
   @Post()
   @Roles(['superuser'])
-  async createPermission(
-    @Body() data: CreatePermissionDto,
-    @Res() res: Response,
-  ) {
+  async createRole(@Body() data: CreateRoleDto, @Res() res: Response) {
     try {
-      await this.permissionService.createPermission(data);
+      await this.roleService.createRole(data);
       return res
         .status(201)
-        .json(successResponse(201, 'Success create permission', null));
+        .json(successResponse(201, 'Success create role', null));
     } catch (error) {
       return errorResponse(res, error);
     }
@@ -80,10 +76,10 @@ export class PermissionController {
   @Roles(['superuser'])
   async findOne(@Param('id') id: string, @Res() res: Response) {
     try {
-      const data = await this.permissionService.findOne(id);
+      const data = await this.roleService.getRole(id);
       return res
         .status(200)
-        .json(successResponse(200, 'Success get permission', data));
+        .json(successResponse(200, 'Success get role', data));
     } catch (error) {
       return errorResponse(res, error);
     }
@@ -91,16 +87,16 @@ export class PermissionController {
 
   @Put(':id')
   @Roles(['superuser'])
-  async updatePermission(
+  async updateRole(
     @Param('id') id: string,
-    @Body() data: UpdatePermissionDto,
+    @Body() data: UpdateRoleDto,
     @Res() res: Response,
   ) {
     try {
-      await this.permissionService.updatePermission(id, data);
+      await this.roleService.updateRole(id, data);
       return res
         .status(200)
-        .json(successResponse(200, 'Success update permission', null));
+        .json(successResponse(200, 'Success update role', null));
     } catch (error) {
       return errorResponse(res, error);
     }
@@ -108,12 +104,12 @@ export class PermissionController {
 
   @Delete(':id')
   @Roles(['superuser'])
-  async deletePermission(@Param('id') id: string, @Res() res: Response) {
+  async deleteRole(@Param('id') id: string, @Res() res: Response) {
     try {
-      await this.permissionService.deletePermission(id);
+      await this.roleService.deleteRole(id);
       return res
         .status(200)
-        .json(successResponse(200, 'Success delete permission', null));
+        .json(successResponse(200, 'Success delete role', null));
     } catch (error) {
       return errorResponse(res, error);
     }

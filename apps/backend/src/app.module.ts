@@ -9,6 +9,7 @@ import { TestRoleModule } from './test-role/test-role.module';
 import { TestPermissionModule } from './test-permission/test-permission.module';
 import { UserModule } from './user/user.module';
 import { PermissionModule } from './permission/permission.module';
+import { RoleModule } from './role/role.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { PermissionModule } from './permission/permission.module';
     TestPermissionModule,
     UserModule,
     PermissionModule,
+    RoleModule,
   ],
   controllers: [AppController],
   providers: [],
