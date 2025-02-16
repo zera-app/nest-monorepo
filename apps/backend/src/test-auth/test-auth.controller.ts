@@ -6,9 +6,7 @@ import { Response } from 'express';
 @UseGuards(AuthGuard)
 export class TestAuthController {
   @Get('/')
-  index(
-    @Res() res: Response,
-  ) {
+  index(@Res() res: Response) {
     return res.status(200).json({ message: 'Hello World!' });
   }
 }

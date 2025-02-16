@@ -21,7 +21,7 @@ export function PermissionModel(tx?: Prisma.TransactionClient) {
     async findAllPermissions(
       datatable: DatatableType,
     ): Promise<PaginationResponse<PermissionType>> {
-      const { page, limit, search, sortDirection, filter } = datatable;
+      const { page, limit, search, sortDirection } = datatable;
       const finalLimit = Number(limit);
       const finalPage = Number(page);
 
@@ -119,7 +119,7 @@ export function PermissionModel(tx?: Prisma.TransactionClient) {
       });
     },
 
-    async findOnePermission(id: string): Promise<PermissionType> {
+    async findOne(id: string): Promise<PermissionType> {
       return await prisma.permission.findUnique({
         where: {
           id,
@@ -127,7 +127,7 @@ export function PermissionModel(tx?: Prisma.TransactionClient) {
       });
     },
 
-    async updatePermission(
+    async update(
       id: string,
       data: { name: string; module: string },
     ): Promise<PermissionType> {
@@ -151,34 +151,6 @@ export function PermissionModel(tx?: Prisma.TransactionClient) {
         select: {
           id: true,
           name: true,
-        },
-      });
-    },
-
-    async findPermissionById(id: string) {
-      return await prisma.permission.findUnique({
-        where: {
-          id,
-        },
-      });
-    },
-
-    async updatePermission(
-      id: string,
-      data: { name: string; description: string },
-    ) {
-      return await prisma.permission.update({
-        where: {
-          id,
-        },
-        data,
-      });
-    },
-
-    async deletePermission(id: string) {
-      return await prisma.permission.delete({
-        where: {
-          id,
         },
       });
     },

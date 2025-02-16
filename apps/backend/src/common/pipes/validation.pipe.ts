@@ -1,7 +1,6 @@
 import {
   ValidationPipe,
   ValidationError,
-  BadRequestException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 

@@ -3,7 +3,7 @@ import { prisma } from '../index';
 import { ApplicationScope } from '@common/common/types/role-scope';
 import { DatatableType } from '@common/common/types/datatable';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { DateUtils } from '@utils/utils';
 import { PaginationResponse } from '@common/common/types/pagination';
 
