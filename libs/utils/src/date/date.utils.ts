@@ -1,9 +1,10 @@
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import advancedFormat from 'dayjs/plugin/advancedFormat';
+import * as dayjs from 'dayjs';
+import * as utc from 'dayjs/plugin/utc';
+import * as timezone from 'dayjs/plugin/timezone';
+import * as relativeTime from 'dayjs/plugin/relativeTime';
+import * as advancedFormat from 'dayjs/plugin/advancedFormat';
 
+// Initialize dayjs plugins
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(relativeTime);
@@ -38,8 +39,8 @@ export class DateUtils {
     return dayjs().subtract(1, 'day').startOf('day');
   }
 
-  static parse(dateString: string, formatString: string): dayjs.Dayjs {
-    return dayjs(dateString, formatString);
+  static parse(dateString: string): dayjs.Dayjs {
+    return dayjs(dateString);
   }
 
   static format(date: dayjs.Dayjs, formatString: string): string {
@@ -68,6 +69,14 @@ export class DateUtils {
 
   static subYears(date: dayjs.Dayjs, years: number): dayjs.Dayjs {
     return date.subtract(years, 'year');
+  }
+
+  static addHours(date: dayjs.Dayjs, hours: number): dayjs.Dayjs {
+    return date.add(hours, 'hour');
+  }
+
+  static subHours(date: dayjs.Dayjs, hours: number): dayjs.Dayjs {
+    return date.subtract(hours, 'hour');
   }
 
   static startOfDay(date: dayjs.Dayjs): dayjs.Dayjs {

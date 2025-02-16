@@ -1,7 +1,12 @@
-import { NestMiddleware } from '@nestjs/common';
+import {
+  ForbiddenException,
+  NestMiddleware,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { errorResponse } from '../reponses/error.response';
 import { StrUtils } from '@utils/utils/string/str.utils';
 import { AccessTokenModel, UserModel } from '@repository/repository';
+import { DateUtils } from '@utils/utils';
 
 export class AuthMiddleware implements NestMiddleware {
   constructor(private readonly permissionNames: string[] = []) {}
@@ -10,24 +15,27 @@ export class AuthMiddleware implements NestMiddleware {
     try {
       const token = req.headers.authorization;
       if (!token || !StrUtils.startsWith(token, 'Bearer ')) {
-        throw errorResponse(401, 'Unauthorized');
+        throw new UnauthorizedException('Unauthenticated');
       }
 
       const tokenParts = token.split(' ');
       if (tokenParts.length !== 2) {
-        return errorResponse(401, 'Unauthorized');
+        throw new UnauthorizedException('Unauthenticated');
       }
 
       const accessToken = await AccessTokenModel().findToken(tokenParts[1]);
       if (!accessToken) {
-        return errorResponse(401, 'Unauthorized');
+        throw new UnauthorizedException('Unauthenticated');
       }
 
       if (
-        accessToken.expiresAt < new Date() &&
-        accessToken.expiresAt !== null
+        accessToken.expiresAt !== null &&
+        DateUtils.isBefore(
+          DateUtils.parse(accessToken.expiresAt.toISOString()),
+          DateUtils.now(),
+        )
       ) {
-        return errorResponse(401, 'Unauthorized');
+        throw new UnauthorizedException('Unauthenticated');
       }
 
       const userInformation = await UserModel().detailProfile(
@@ -35,27 +43,22 @@ export class AuthMiddleware implements NestMiddleware {
       );
 
       if (!userInformation) {
-        return errorResponse(401, 'Unauthorized');
+        throw new UnauthorizedException('Unauthenticated');
       }
 
       if (this.permissionNames.length > 0) {
-        const hasPermission = userInformation.roles.some((role) =>
-          role.role.permissions.some((permission) =>
-            this.permissionNames.includes(permission.permission.name),
-          ),
+        const hasPermission = userInformation.permissions.some((permission) =>
+          this.permissionNames.includes(permission),
         );
 
         if (!hasPermission) {
-          return errorResponse(403, 'Forbidden');
+          throw new ForbiddenException('Insufficient Permission');
         }
       }
 
       req.user = userInformation;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
-      console.log(error);
-
-      return errorResponse(500, 'Internal Server Error');
+      return errorResponse(res, error);
     }
 
     next();

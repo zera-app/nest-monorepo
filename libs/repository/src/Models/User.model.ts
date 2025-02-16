@@ -1,10 +1,13 @@
 import { StrUtils } from '@utils/utils/string/str.utils';
-import { prisma } from '../index';
+import { prisma, roleModel } from '../index';
 import { DatatableType } from '@common/common/types/datatable';
 import { PaginationResponse } from '@common/common/types/pagination';
 import { UserInformation } from '@common/common/types/user-information';
+import { BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { DateUtils } from '@utils/utils';
 
-type UserType = {
+export type UserType = {
   id: string;
   name: string;
   email: string;
@@ -17,30 +20,119 @@ type UserType = {
   updatedAt: Date;
 };
 
-export function UserModel() {
-  return Object.assign(prisma, {
-    user: prisma.user,
+export function UserModel(tx?: Prisma.TransactionClient) {
+  const db = tx || prisma;
 
-    async findAll(
+  return {
+    user: db.user,
+
+    async datatable(
       queryParam: DatatableType,
       withRole: boolean = false,
     ): Promise<PaginationResponse<UserType>> {
       const { page, limit, search, sort, sortDirection } = queryParam;
+      const finalLimit = Number(limit);
+      const finalPage = Number(page);
 
-      const where = {
-        OR: [
-          {
-            name: {
-              contains: search,
+      const allowedSort = ['name', 'email', 'createdAt', 'updatedAt'];
+      const sortDirectionAllowed = ['asc', 'desc'];
+      const allowedFilter = ['role', 'createdAt', 'updatedAt'];
+
+      if (!allowedSort.includes(sort)) {
+        throw new BadRequestException('Invalid sort field');
+      }
+
+      if (!sortDirectionAllowed.includes(sortDirection)) {
+        throw new BadRequestException('Invalid sort direction');
+      }
+
+      if (queryParam.filter) {
+        for (const key in queryParam.filter) {
+          if (!allowedFilter.includes(key)) {
+            throw new BadRequestException('Invalid filter field');
+          }
+        }
+      }
+
+      let where = {};
+      if (search) {
+        where = {
+          OR: [
+            {
+              name: {
+                contains: search,
+                mode: 'insensitive',
+              },
             },
-          },
-          {
-            email: {
-              contains: search,
+            {
+              email: {
+                contains: search,
+                mode: 'insensitive',
+              },
             },
-          },
-        ],
-      };
+          ],
+        };
+      }
+
+      let filter = {};
+      if (queryParam.filter) {
+        if (queryParam.filter['role']) {
+          filter = {
+            roles: {
+              some: {
+                role: {
+                  name: {
+                    contains: queryParam.filter['role'],
+                    mode: 'insensitive',
+                  },
+                },
+              },
+            },
+          };
+        }
+
+        if (
+          queryParam.filter['createdAt'] &&
+          typeof queryParam.filter['createdAt'] === 'string'
+        ) {
+          const [startDate, endDate] =
+            queryParam.filter['createdAt'].split(',');
+          filter = {
+            ...filter,
+            createdAt: endDate
+              ? {
+                  gte: DateUtils.parse(startDate),
+                  lte: DateUtils.parse(endDate),
+                }
+              : {
+                  gte: DateUtils.parse(startDate),
+                },
+          };
+        }
+
+        if (
+          queryParam.filter['updatedAt'] &&
+          typeof queryParam.filter['updatedAt'] === 'string'
+        ) {
+          const [startDate, endDate] =
+            queryParam.filter['updatedAt'].split(',');
+          filter = {
+            ...filter,
+            updatedAt: endDate
+              ? {
+                  gte: DateUtils.parse(startDate),
+                  lte: DateUtils.parse(endDate),
+                }
+              : {
+                  gte: DateUtils.parse(startDate),
+                },
+          };
+        }
+
+        where = {
+          AND: [where, filter],
+        };
+      }
 
       const select = withRole
         ? {
@@ -67,10 +159,10 @@ export function UserModel() {
             updatedAt: true,
           };
 
-      const data = await prisma.user.findMany({
+      const data = await db.user.findMany({
         where,
-        take: limit,
-        skip: (page - 1) * limit,
+        take: finalLimit,
+        skip: (finalPage - 1) * finalLimit,
         orderBy: {
           [sort]: sortDirection,
         },
@@ -79,23 +171,79 @@ export function UserModel() {
 
       return {
         data: data,
-        page: page - 1,
-        limit: limit,
-        totalCount: await prisma.user.count({ where }),
+        page: finalPage - 1,
+        limit: finalLimit,
+        totalCount: await db.user.count({ where }),
       };
     },
 
+    async create(data: {
+      name: string;
+      email: string;
+      password: string;
+      roles?: string[];
+    }): Promise<UserInformation> {
+      const newData = await db.user.create({
+        data: {
+          name: data.name,
+          email: data.email,
+          password: data.password,
+        },
+      });
+
+      if (data.roles) {
+        const roles = await roleModel(tx).findRoleByName(data.roles);
+        await this.assignRolesToUser(
+          newData.id,
+          roles.map((role) => role.id),
+        );
+      }
+
+      return await this.detailProfile(newData.id);
+    },
+
     // don't change this for authentication flow
-    async findUserByEmail(email: string) {
-      return await prisma.user.findUnique({
+    async findUserByEmail(email: string): Promise<{
+      id: string;
+      name: string | null;
+      email: string;
+      password: string;
+      emailVerifiedAt: Date | null;
+      updatedAt: Date;
+      createdAt: Date;
+    } | null> {
+      return await db.user.findUnique({
         where: {
           email,
         },
       });
     },
 
+    async findOneByEmail(email: string): Promise<{
+      id: string;
+      name: string | null;
+      email: string;
+      password: string;
+      updatedAt: Date | null;
+      createdAt: Date | null;
+    } | null> {
+      return await db.user.findFirst({
+        where: {
+          email,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          password: true,
+          updatedAt: true,
+          createdAt: true,
+        },
+      });
+    },
+
     async detailProfile(userId: string): Promise<UserInformation> {
-      const user = await prisma.user.findUnique({
+      const user = await db.user.findUnique({
         where: {
           id: userId,
         },
@@ -123,7 +271,7 @@ export function UserModel() {
         throw new Error('User not found');
       }
 
-      const rolePermission = await prisma.rolePermission.findMany({
+      const rolePermission = await db.rolePermission.findMany({
         where: {
           roleId: {
             in: user.roles.map((role) => role.role.id),
@@ -131,7 +279,7 @@ export function UserModel() {
         },
       });
 
-      const permission = await prisma.permission.findMany({
+      const permission = await db.permission.findMany({
         where: {
           id: {
             in: rolePermission.map((item) => item.permissionId),
@@ -158,12 +306,57 @@ export function UserModel() {
       };
     },
 
+    async update(
+      userId: string,
+      data: {
+        name: string;
+        email: string;
+        password?: string;
+        roles?: string[];
+      },
+    ) {
+      const newData = await db.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          name: data.name,
+          email: data.email,
+          ...(data.password && { password: data.password }),
+        },
+      });
+
+      if (data.roles) {
+        const roles = await roleModel(tx).findRoleByName(data.roles);
+        const currentRoles = await this.findUserRoles(userId);
+        await this.revokeRolesFromUser(
+          userId,
+          currentRoles.map((role) => role.roleId),
+        );
+
+        await this.assignRolesToUser(
+          userId,
+          roles.map((role) => role.id),
+        );
+      }
+
+      return await this.detailProfile(newData.id);
+    },
+
+    async delete(userId: string): Promise<void> {
+      await db.user.delete({
+        where: {
+          id: userId,
+        },
+      });
+    },
+
     // ROLE BASED ACCESS CONTROL (RBAC) ========================
 
     async assignRoleToUser(userId: string, roleId: string) {
       let finalRoleId = roleId;
       if (!StrUtils.isUuid(roleId)) {
-        const role = await prisma.role.findFirst({
+        const role = await db.role.findFirst({
           where: {
             name: roleId,
           },
@@ -175,7 +368,7 @@ export function UserModel() {
         finalRoleId = role.id;
       }
 
-      return await prisma.roleUser.create({
+      return await db.roleUser.create({
         data: {
           userId: userId,
           roleId: finalRoleId,
@@ -186,7 +379,7 @@ export function UserModel() {
     async assignRolesToUser(userId: string, roleIds: string[]) {
       let finalRoleIds = roleIds;
       if (roleIds.some((roleId) => !StrUtils.isUuid(roleId))) {
-        const roles = await prisma.role.findMany({
+        const roles = await db.role.findMany({
           where: {
             name: {
               in: roleIds,
@@ -201,7 +394,7 @@ export function UserModel() {
         finalRoleIds = roles.map((role) => role.id);
       }
 
-      return await prisma.roleUser.createMany({
+      return await db.roleUser.createMany({
         data: finalRoleIds.map((item) => ({
           userId: userId,
           roleId: item,
@@ -210,7 +403,7 @@ export function UserModel() {
     },
 
     async findUserRoles(userId: string) {
-      return await prisma.roleUser.findMany({
+      return await db.roleUser.findMany({
         where: {
           userId,
         },
@@ -220,7 +413,7 @@ export function UserModel() {
     async revokeRoleFromUser(userId: string, roleId: string) {
       let finalRoleId = roleId;
       if (!StrUtils.isUuid(roleId)) {
-        const role = await prisma.role.findFirst({
+        const role = await db.role.findFirst({
           where: {
             name: roleId,
           },
@@ -232,7 +425,7 @@ export function UserModel() {
         finalRoleId = role.id;
       }
 
-      return await prisma.roleUser.deleteMany({
+      return await db.roleUser.deleteMany({
         where: {
           userId: userId,
           roleId: finalRoleId,
@@ -242,7 +435,7 @@ export function UserModel() {
 
     async revokeRolesFromUser(userId: string, roleIds: string[]) {
       if (roleIds.some((roleId) => !StrUtils.isUuid(roleId))) {
-        const roles = await prisma.role.findMany({
+        const roles = await db.role.findMany({
           where: {
             name: {
               in: roleIds,
@@ -257,7 +450,7 @@ export function UserModel() {
         roleIds = roles.map((role) => role.id);
       }
 
-      return await prisma.roleUser.deleteMany({
+      return await db.roleUser.deleteMany({
         where: {
           userId,
           roleId: {
@@ -266,5 +459,5 @@ export function UserModel() {
         },
       });
     },
-  });
+  };
 }

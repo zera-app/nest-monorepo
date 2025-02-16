@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { prisma, UserModel } from '@repository/repository';
+import { DateUtils } from '@utils/utils';
+import { tokenLifeTime } from '@utils/utils/default/token-lifetime';
 import { Request } from 'express';
 
 @Injectable()
@@ -41,14 +43,21 @@ export class UnifiedGuard implements CanActivate {
 
     if (
       !accessToken ||
-      (accessToken.expiresAt && accessToken.expiresAt < new Date())
+      (accessToken.expiresAt !== null &&
+        DateUtils.isBefore(
+          DateUtils.parse(accessToken.expiresAt.toString()),
+          DateUtils.now(),
+        ))
     ) {
       throw new UnauthorizedException('Invalid or expired token');
     }
 
     await prisma.accessToken.update({
       where: { id: accessToken.id },
-      data: { lastUsedAt: new Date() },
+      data: {
+        lastUsedAt: DateUtils.now().toDate(),
+        ...(accessToken.expiresAt && { expiresAt: tokenLifeTime }),
+      },
     });
 
     const userInformation = await UserModel().detailProfile(accessToken.userId);

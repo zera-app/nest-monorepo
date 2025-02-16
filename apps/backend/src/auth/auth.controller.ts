@@ -3,6 +3,7 @@ import {
   Controller,
   Post,
   Res,
+  UnprocessableEntityException,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -23,12 +24,22 @@ export class AuthController {
 
       const user = await UserModel().findUserByEmail(email);
       if (!user) {
-        return errorResponse(422, 'Invalid email or password');
+        throw new UnprocessableEntityException({
+          message: 'Invalid email or password',
+          errors: {
+            email: ['Invalid email or password'],
+          },
+        });
       }
 
       const isMatch = HashUtils.compareHash(password, user.password);
       if (!isMatch) {
-        return errorResponse(422, 'Invalid email or password');
+        throw new UnprocessableEntityException({
+          message: 'Invalid email or password',
+          errors: {
+            email: ['Invalid email or password'],
+          },
+        });
       }
 
       const accessToken = await AccessTokenModel().createToken(
@@ -43,12 +54,8 @@ export class AuthController {
           accessToken: accessToken,
         }),
       );
-
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
-      console.log(error);
-
-      return errorResponse(500, 'Internal Server Error');
+      return errorResponse(res, error);
     }
   }
 }

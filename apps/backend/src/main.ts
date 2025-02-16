@@ -1,8 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { CustomValidationPipe } from './common/pipes/validation.pipe';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.useGlobalPipes(new CustomValidationPipe());
 
   const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN?.split(',') ?? [
     'http://localhost:3000',

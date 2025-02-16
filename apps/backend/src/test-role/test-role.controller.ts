@@ -8,18 +8,13 @@ import { Response } from 'express';
 export class TestRoleController {
   @Get('/')
   @Roles(['admin'])
-  index(
-    @Res() res: Response,
-  ) {
+  index(@Res() res: Response) {
     return res.status(200).json({ message: 'Hello World!' });
   }
 
-
   @Get('/invalid-permission')
   @Roles(['superuser'])
-  invalidPermission(
-    @Res() res: Response,
-  ) {
+  invalidPermission(@Res() res: Response) {
     return res.status(200).json({ message: 'Hello World!' });
   }
 }
