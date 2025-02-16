@@ -8,6 +8,7 @@ import { TestAuthModule } from './test-auth/test-auth.module';
 import { TestRoleModule } from './test-role/test-role.module';
 import { TestPermissionModule } from './test-permission/test-permission.module';
 import { UserModule } from './user/user.module';
+import { PermissionModule } from './permission/permission.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { UserModule } from './user/user.module';
     TestRoleModule,
     TestPermissionModule,
     UserModule,
+    PermissionModule,
   ],
   controllers: [AppController],
   providers: [],

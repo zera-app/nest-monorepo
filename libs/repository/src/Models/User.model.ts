@@ -4,7 +4,7 @@ import { DatatableType } from '@common/common/types/datatable';
 import { PaginationResponse } from '@common/common/types/pagination';
 import { UserInformation } from '@common/common/types/user-information';
 import { BadRequestException } from '@nestjs/common';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { DateUtils } from '@utils/utils';
 
 export type UserType = {
