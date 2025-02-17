@@ -40,13 +40,33 @@ export class AuthController {
     }
   }
 
-  // FORGOT PASSWORD
   @Post('forgot-password')
-  async forgotPassword() {}
+  async forgotPassword(@Res() res: Response, @Body('email') email: string) {
+    try {
+      await this.authService.forgotPassword(email);
+      return res
+        .status(200)
+        .json(successResponse(200, 'Reset password email sent', null));
+    } catch (error) {
+      return errorResponse(res, error);
+    }
+  }
 
-  // RESET PASSWORD
   @Post('reset-password')
-  async resetPassword() {}
+  async resetPassword(
+    @Res() res: Response,
+    @Body('token') token: string,
+    @Body('password') password: string,
+  ) {
+    try {
+      await this.authService.resetPassword(token, password);
+      return res
+        .status(200)
+        .json(successResponse(200, 'Password reset successfully.', null));
+    } catch (error) {
+      return errorResponse(res, error);
+    }
+  }
 
   @Get('verify-email')
   async verifyEmail(@Res() res: Response, @Body('token') token: string) {

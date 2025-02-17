@@ -10,6 +10,7 @@ import { HashUtils } from '@utils/utils';
 import { UserInformation } from '../../../../libs/common/src/types/user-information';
 import { RegisterDto } from './dto/register.dto';
 import { MailService } from '@common/common';
+import { ResetTokenModel } from '@repository/repository/Models/ResetToken.model';
 
 @Injectable()
 export class AuthService {
@@ -162,34 +163,65 @@ export class AuthService {
     });
   }
 
-  // async forgotPassword(email: string) {
-  //   return await this.prismaService.$transaction(async (prisma) => {
-  //     // const user = await UserModel(prisma).findUserByEmail(email);
-  //     // if (!user) {
-  //     //   throw new UnprocessableEntityException({
-  //     //     message: 'Email not found',
-  //     //     errors: {
-  //     //       email: ['Email not found'],
-  //     //     },
-  //     //   });
-  //     // }
-  //     // const emailToken = await EmailVerificationModel(prisma).create({
-  //     //   userId: user.id,
-  //     // });
-  //     // await this.mailService.sendMailWithTemplate(
-  //     //   email,
-  //     //   'Reset your password',
-  //     //   '/auth/reset-password',
-  //     //   {
-  //     //     name: user.name,
-  //     //     email: user.email,
-  //     //     token: emailToken.token,
-  //     //     url: `${process.env.CLIENT_FRONTEND_APP_URL}/reset-password?token=${emailToken.token}`,
-  //     //   },
-  //     // );
-  //     // return {
-  //     //   message: 'Reset password email sent',
-  //     // };
-  //   });
-  // }
+  async forgotPassword(email: string) {
+    return await this.prismaService.$transaction(async (prisma) => {
+      const user = await UserModel(prisma).findUserByEmail(email);
+      if (!user) {
+        throw new UnprocessableEntityException({
+          message: 'Email not found',
+          errors: {
+            email: ['Email not found'],
+          },
+        });
+      }
+      const emailToken = await ResetTokenModel(prisma).create({
+        userId: user.id,
+      });
+
+      await this.mailService.sendMailWithTemplate(
+        email,
+        'Reset your password',
+        '/auth/reset-password',
+        {
+          name: user.name,
+          email: user.email,
+          token: emailToken.token,
+          url: `${process.env.CLIENT_FRONTEND_APP_URL}/reset-password?token=${emailToken.token}`,
+        },
+      );
+      return {
+        message: 'Reset password email sent',
+      };
+    });
+  }
+
+  async resetPassword(token: string, password: string) {
+    return await this.prismaService.$transaction(async (prisma) => {
+      const emailToken = await ResetTokenModel(prisma).findToken(token);
+      if (!emailToken) {
+        throw new UnprocessableEntityException({
+          message: 'Invalid token',
+          errors: {
+            token: ['Invalid token'],
+          },
+        });
+      }
+
+      const user = await UserModel(prisma).findUserByEmail(emailToken.userId);
+
+      const hashedPassword = await HashUtils.generateHash(password);
+
+      await UserModel(prisma).updatePassword(user.id, hashedPassword);
+
+      await prisma.resetToken.delete({
+        where: {
+          id: emailToken.id,
+        },
+      });
+
+      return {
+        message: 'Password reset successfully',
+      };
+    });
+  }
 }
