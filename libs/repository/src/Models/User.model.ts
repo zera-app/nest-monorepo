@@ -343,6 +343,17 @@ export function UserModel(tx?: Prisma.TransactionClient) {
       return await this.detailProfile(newData.id);
     },
 
+    async verifyEmail(userId: string) {
+      return await db.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          emailVerifiedAt: new Date(),
+        },
+      });
+    }
+
     async delete(userId: string): Promise<void> {
       await db.user.delete({
         where: {
