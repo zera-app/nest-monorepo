@@ -162,34 +162,34 @@ export class AuthService {
     });
   }
 
-  async forgotPassword(email: string) {
-    return await this.prismaService.$transaction(async (prisma) => {
-      // const user = await UserModel(prisma).findUserByEmail(email);
-      // if (!user) {
-      //   throw new UnprocessableEntityException({
-      //     message: 'Email not found',
-      //     errors: {
-      //       email: ['Email not found'],
-      //     },
-      //   });
-      // }
-      // const emailToken = await EmailVerificationModel(prisma).create({
-      //   userId: user.id,
-      // });
-      // await this.mailService.sendMailWithTemplate(
-      //   email,
-      //   'Reset your password',
-      //   '/auth/reset-password',
-      //   {
-      //     name: user.name,
-      //     email: user.email,
-      //     token: emailToken.token,
-      //     url: `${process.env.CLIENT_FRONTEND_APP_URL}/reset-password?token=${emailToken.token}`,
-      //   },
-      // );
-      // return {
-      //   message: 'Reset password email sent',
-      // };
-    });
-  }
+  // async forgotPassword(email: string) {
+  //   return await this.prismaService.$transaction(async (prisma) => {
+  //     // const user = await UserModel(prisma).findUserByEmail(email);
+  //     // if (!user) {
+  //     //   throw new UnprocessableEntityException({
+  //     //     message: 'Email not found',
+  //     //     errors: {
+  //     //       email: ['Email not found'],
+  //     //     },
+  //     //   });
+  //     // }
+  //     // const emailToken = await EmailVerificationModel(prisma).create({
+  //     //   userId: user.id,
+  //     // });
+  //     // await this.mailService.sendMailWithTemplate(
+  //     //   email,
+  //     //   'Reset your password',
+  //     //   '/auth/reset-password',
+  //     //   {
+  //     //     name: user.name,
+  //     //     email: user.email,
+  //     //     token: emailToken.token,
+  //     //     url: `${process.env.CLIENT_FRONTEND_APP_URL}/reset-password?token=${emailToken.token}`,
+  //     //   },
+  //     // );
+  //     // return {
+  //     //   message: 'Reset password email sent',
+  //     // };
+  //   });
+  // }
 }

@@ -352,7 +352,7 @@ export function UserModel(tx?: Prisma.TransactionClient) {
           emailVerifiedAt: new Date(),
         },
       });
-    }
+    },
 
     async delete(userId: string): Promise<void> {
       await db.user.delete({

@@ -2,7 +2,7 @@ import { Body, Controller, Get, Post, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { errorResponse } from '@common/common/reponses/error.response';
-import { response, Response } from 'express';
+import { Response } from 'express';
 import { successResponse } from '@common/common/reponses/success.response';
 import { RegisterDto } from './dto/register.dto';
 
