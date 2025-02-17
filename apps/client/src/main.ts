@@ -31,9 +31,7 @@ async function bootstrap() {
     credentials: false,
   });
 
-  console.log(`Client is running on: ${process.env.APP_CLIENT_PORT ?? 8002}`);
   await app.listen(process.env.APP_CLIENT_PORT ?? 8002);
-
   console.log(`Client is running on: ${await app.getUrl()}`);
 }
 bootstrap();
