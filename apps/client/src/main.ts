@@ -1,8 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { ClientModule } from './client.module';
+import { CustomValidationPipe } from 'apps/backend/src/common/pipes/validation.pipe';
 
 async function bootstrap() {
   const app = await NestFactory.create(ClientModule);
+  app.useGlobalPipes(new CustomValidationPipe());
+
   const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN?.split(',') ?? [
     'http://localhost:3000',
   ];
@@ -28,6 +31,7 @@ async function bootstrap() {
     credentials: false,
   });
 
+  console.log(`Client is running on: ${process.env.APP_CLIENT_PORT ?? 8002}`);
   await app.listen(process.env.APP_CLIENT_PORT ?? 8002);
 
   console.log(`Client is running on: ${await app.getUrl()}`);
