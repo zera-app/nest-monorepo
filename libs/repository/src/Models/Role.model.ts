@@ -251,6 +251,20 @@ export function roleModel(tx?: Prisma.TransactionClient) {
       });
     },
 
+    async select(): Promise<{ id: string; name: string }[]> {
+      return await db.role.findMany({
+        select: {
+          id: true,
+          name: true,
+        },
+        where: {
+          name: {
+            not: 'superuser',
+          },
+        },
+      });
+    },
+
     async findRoleByName(
       name: string[],
     ): Promise<{ id: string; name: string }[]> {
