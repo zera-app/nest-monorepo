@@ -144,6 +144,16 @@ export function PermissionModel(tx?: Prisma.TransactionClient) {
       });
     },
 
+    async select(): Promise<{ id: string; name: string; module: string }[]> {
+      return await prisma.permission.findMany({
+        select: {
+          id: true,
+          name: true,
+          module: true,
+        },
+      });
+    },
+
     async findPermissionByName(
       name: string[],
     ): Promise<{ id: string; name: string }[]> {
