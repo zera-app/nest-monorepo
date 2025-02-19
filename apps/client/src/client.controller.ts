@@ -7,6 +7,7 @@ export class ClientController {
   getHello(@Res() res: Response): Response {
     return res.json({
       message: 'Welcome to the client service',
+      environment: process.env.NODE_ENV,
     });
   }
 }
