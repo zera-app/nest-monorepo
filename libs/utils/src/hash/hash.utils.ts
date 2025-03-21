@@ -1,12 +1,12 @@
-import * as CryptoJS from 'crypto-js';
+import * as bcrypt from 'bcrypt';
 
 export class HashUtils {
   static generateHash(value: string): string {
-    return CryptoJS.SHA256(value).toString();
+    const saltRounds = 10;
+    return bcrypt.hashSync(value, saltRounds);
   }
 
   static compareHash(value: string, hash: string): boolean {
-    const hashedValue = this.generateHash(value);
-    return hashedValue === hash;
+    return bcrypt.compareSync(value, hash);
   }
 }

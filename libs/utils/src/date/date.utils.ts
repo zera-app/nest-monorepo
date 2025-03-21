@@ -14,6 +14,7 @@ export class DateUtils {
   private static _configuredTimezone: string = (() => {
     try {
       return process.env.APP_TIMEZONE ?? 'UTC';
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       return 'UTC';
     }
